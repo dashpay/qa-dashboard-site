@@ -23,7 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 
-# Local runtime config override (committed example lives in public/config.example.json)
-public/config.json
+# public/config.json IS committed (it pins the live dash-qa contract for the
+# deploy). public/config.example.json documents the shape.
 .env
 .env.local
