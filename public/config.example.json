@@ -1,0 +1,7 @@
+{
+  "_comment": "Copy to public/config.json (gitignored) to point a static deploy at a contract without rebuilding. Or commit it for a fixed deploy. Values here override build-time VITE_* defaults; a contract ID entered in the UI overrides everything and is stored in localStorage.",
+  "network": "testnet",
+  "contractId": "",
+  "testCaseDocumentType": "testCase",
+  "testRunDocumentType": "testRun"
+}
