@@ -64,6 +64,27 @@ describe('normalizeTestCase', () => {
   it('returns null without a testId', () => {
     expect(normalizeTestCase('x', { properties: { title: 'no id' } })).toBeNull();
   });
+
+  it('resolves integer FK codes (v4 normalized contract) via lookups', () => {
+    const lookups = {
+      tier: new Map([['3', 'Uncommon']]),
+      category: new Map([['11', 'System']]),
+      app: new Map([['0', 'SwiftExampleApp']]),
+    };
+    const doc: RawDocument = {
+      properties: { testId: 'SYS-06', title: 'Path elements', tier: 3n, category: 11n, app: 0n, layer: 'Platform', implStatus: '🔌' },
+    };
+    const tc = normalizeTestCase('d', doc, lookups)!;
+    expect(tc.tier).toBe('Uncommon');
+    expect(tc.category).toBe('System');
+    expect(tc.app).toBe('SwiftExampleApp');
+    expect(tc.layer).toBe('Platform');
+  });
+
+  it('passes codes through unresolved when no lookups are given', () => {
+    const tc = normalizeTestCase('d', { properties: { testId: 'X', tier: 3n } })!;
+    expect(tc.tier).toBe('3');
+  });
 });
 
 describe('normalizeTestRun', () => {

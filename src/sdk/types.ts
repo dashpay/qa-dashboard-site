@@ -65,6 +65,8 @@ export interface TestCase {
   layer: Layer | null;
   category: Category | null;
   implStatus: ImplStatus;
+  /** Application under test (resolved from the `app` lookup; v4+ contracts). */
+  app?: string;
   /** Entry point & test notes (plan's last column). */
   description?: string;
   /** Primary code entry point (view / FFI function). */
@@ -86,6 +88,8 @@ export interface TestRun {
   result: RunResult;
   /** Network the run was executed against (testnet/devnet/mainnet/local/…). */
   network: string | null;
+  /** Application under test (resolved from the `app` lookup; v4+ contracts). */
+  app?: string;
   /** Build / commit reference the run exercised, e.g. a git sha or app build. */
   buildRef: string | null;
   /** Device / simulator the run executed on. */
@@ -105,6 +109,21 @@ export interface TestRun {
   createdAt?: number;
   ownerId?: string;
   raw: Record<string, unknown>;
+}
+
+/**
+ * Lookup maps resolving integer FK codes → display names, for normalized
+ * (v3+) contracts that split tier/category/app into lookup document types.
+ * Empty maps (older contracts) mean values pass through as-is.
+ */
+export interface Lookups {
+  tier: Map<string, string>;
+  category: Map<string, string>;
+  app: Map<string, string>;
+}
+
+export function emptyLookups(): Lookups {
+  return { tier: new Map(), category: new Map(), app: new Map() };
 }
 
 export const RUN_RESULTS: RunResult[] = ['pass', 'fail', 'blocked', 'skipped', 'unknown'];

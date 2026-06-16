@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { AppConfig } from '../config';
 import { isConfigured } from '../config';
-import { fetchTestCases, fetchTestRuns } from '../sdk/documents';
+import { fetchLookups, fetchTestCases, fetchTestRuns } from '../sdk/documents';
 import type { TestCase, TestRun } from '../sdk/types';
 
 export interface QaData {
@@ -47,9 +47,12 @@ export function useQaData(config: AppConfig | null): UseQaDataResult {
 
     (async () => {
       try {
+        // Lookups (tier/category/app code→name) first, so normalised v3+
+        // contracts resolve FK codes; empty for older string-typed contracts.
+        const lookups = await fetchLookups(config);
         const [cases, runs] = await Promise.all([
-          fetchTestCases(config),
-          fetchTestRuns(config),
+          fetchTestCases(config, lookups),
+          fetchTestRuns(config, lookups),
         ]);
         if (cancelled) return;
         setData({ cases, runs, loadedAt: Date.now() });

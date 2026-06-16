@@ -6,7 +6,7 @@
 // TEST_PLAN emoji vocabulary are all accepted so a small mismatch with the
 // sibling task's schema degrades gracefully instead of throwing.
 
-import type { ImplStatus, RunResult, TestCase, TestRun } from './types';
+import type { ImplStatus, Lookups, RunResult, TestCase, TestRun } from './types';
 
 /** Minimal structural view of an Evo SDK Document (avoids importing wasm types). */
 export interface RawDocument {
@@ -38,6 +38,16 @@ function pickString(props: Record<string, unknown>, keys: string[]): string | un
   const s = typeof v === 'string' ? v : String(v);
   const trimmed = s.trim();
   return trimmed === '' ? undefined : trimmed;
+}
+
+/**
+ * Resolve a normalized (v3+) integer FK code to its display name via a lookup
+ * map. Non-numeric values (older string-typed contracts) pass through.
+ */
+function resolveCode(value: string | undefined, map?: Map<string, string>): string | undefined {
+  if (value === undefined) return undefined;
+  if (map && /^\d+$/.test(value)) return map.get(value) ?? value;
+  return value;
 }
 
 export function normalizeImplStatus(value: string | undefined): ImplStatus {
@@ -80,7 +90,11 @@ export function normalizeResult(value: string | undefined): RunResult {
   return 'unknown';
 }
 
-export function normalizeTestCase(documentId: string, doc: RawDocument): TestCase | null {
+export function normalizeTestCase(
+  documentId: string,
+  doc: RawDocument,
+  lookups?: Lookups,
+): TestCase | null {
   const props = doc.properties ?? {};
   const testId = pickString(props, ['testId', 'testCaseId', 'caseId', 'id', 'code']);
   if (!testId) return null; // a test case without an id is unusable
@@ -88,9 +102,10 @@ export function normalizeTestCase(documentId: string, doc: RawDocument): TestCas
     documentId,
     testId,
     title: pickString(props, ['title', 'action', 'name', 'summary']) ?? testId,
-    tier: pickString(props, ['tier']) ?? null,
+    tier: resolveCode(pickString(props, ['tier']), lookups?.tier) ?? null,
     layer: pickString(props, ['layer']) ?? null,
-    category: pickString(props, ['category', 'domain', 'area']) ?? null,
+    category: resolveCode(pickString(props, ['category', 'domain', 'area']), lookups?.category) ?? null,
+    app: resolveCode(pickString(props, ['app']), lookups?.app),
     implStatus: normalizeImplStatus(pickString(props, ['implStatus', 'status', 'implementation'])),
     description: pickString(props, ['description', 'details', 'notes']),
     entryPoint: pickString(props, ['entryPoint', 'entrypoint', 'entry', 'location']),
@@ -119,7 +134,11 @@ function normalizeNetwork(value: string | undefined): string | undefined {
   return /^\d+$/.test(value) ? (NETWORK_NAMES[value] ?? value) : value;
 }
 
-export function normalizeTestRun(documentId: string, doc: RawDocument): TestRun | null {
+export function normalizeTestRun(
+  documentId: string,
+  doc: RawDocument,
+  lookups?: Lookups,
+): TestRun | null {
   const props = doc.properties ?? {};
   const testId = pickString(props, ['testId', 'testCaseId', 'caseId', 'case', 'code']);
   if (!testId) return null;
@@ -148,6 +167,7 @@ export function normalizeTestRun(documentId: string, doc: RawDocument): TestRun 
     testId,
     result: normalizeResult(pickString(props, ['result', 'outcome', 'status', 'verdict'])),
     network: normalizeNetwork(pickString(props, ['network', 'net'])) ?? null,
+    app: resolveCode(pickString(props, ['app']), lookups?.app),
     buildRef:
       pickString(props, ['buildRef', 'build', 'commit', 'sha', 'version']) ?? null,
     device: pickString(props, ['device', 'simulator']),

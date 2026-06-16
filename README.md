@@ -82,16 +82,28 @@ sibling task's `schema/qa-contract.documents.json`). The normaliser
 ([`src/sdk/normalize.ts`](src/sdk/normalize.ts)) is tolerant of synonyms and of
 the TEST_PLAN emoji vocabulary, so minor drift degrades gracefully.
 
+The contract is **normalised** (v3+): `tier`, `category`, and `app` are separate
+lookup document types (`{ code, name }`), and `testCase` / `testRun` reference
+them by integer `code`. The dashboard fetches those lookups up front and
+resolves the codes back to names (so the matrix/filters show `Essential` /
+`Core`, not `0` / `0`); unresolved or string-typed values pass through, so older
+contracts still work.
+
+**Lookups** — `tier` / `category` / `app`, each `{ code (int), name }`
+(`app` also carries `platform`, `description`).
+
 **`testCase`** — one row of the TEST_PLAN §4 catalog:
-`testId` (e.g. `CORE-05`), `title`, `tier`, `category`, `layer`, `implStatus`
-(the glyph ✅/🧪/⚠️/🔌/🚫), `description`, `entryPoint`, `prerequisites`,
-`planCommit`.
+`testId` (e.g. `CORE-05`), `app`/`tier`/`category` (integer FK codes → resolved
+names), `title`, `layer`, `implStatus` (the glyph ✅/🧪/⚠️/🔌/🚫),
+`description`, `entryPoint`, `prerequisites`, `planCommit`.
 
 **`testRun`** — an append-only execution record:
-`testId`, `result` (`pass`/`fail`/`blocked`/`skipped`), `network` (an integer
-id — `0`=mainnet, `1`=testnet, `2`=devnet, `3`=regtest — mapped to a name for
-display), `buildRef`, `device`, `evidence` (txid / URL / path — classified for
-display), `notes`, `blockerReason`. The document's `$createdAt` is the run time.
+`testId`, `app` (FK code → name), `result` (enum `pass`/`fail`/`blocked`/`skipped`),
+`network` (integer id — `0`=mainnet, `1`=testnet, `2`=devnet, `3`=regtest —
+mapped to a name), `buildRef`, `device`, `evidence` (txid / URL / path —
+classified for display), `notes`, `blockerReason`. `$createdAt` is the run time.
+The unique `(testId, app)` index allows per-app results; with a single seeded
+app today the dashboard keys "latest result" by `testId`.
 
 ### How "latest result" is computed
 

@@ -4,7 +4,7 @@ import type { AppConfig } from '../config';
 import { DEMO_CASES, DEMO_RUNS, isDemoContract } from '../data/demo';
 import { getConnectedSdk } from './client';
 import { normalizeTestCase, normalizeTestRun, type RawDocument } from './normalize';
-import type { TestCase, TestRun } from './types';
+import { emptyLookups, type Lookups, type TestCase, type TestRun } from './types';
 
 const PAGE_LIMIT = 100; // Platform caps document queries at 100 per request.
 const DEFAULT_MAX_DOCS = 5_000;
@@ -57,8 +57,40 @@ async function queryAll(
   return out.slice(0, maxDocs);
 }
 
-/** Fetch all `testCase` documents. */
-export async function fetchTestCases(config: AppConfig): Promise<TestCase[]> {
+/**
+ * Fetch the lookup document types (tier / category / app) and build code→name
+ * maps. Normalized (v3+) contracts split these out and reference them by
+ * integer FK. Tolerant: a contract without a given lookup type yields an empty
+ * map and values pass through unresolved.
+ */
+async function fetchLookupMap(config: AppConfig, documentTypeName: string): Promise<Map<string, string>> {
+  try {
+    const raw = await queryAll(config, { dataContractId: config.contractId, documentTypeName }, 1_000);
+    const map = new Map<string, string>();
+    for (const [, doc] of raw) {
+      const props = doc.properties ?? {};
+      const code = props.code;
+      const name = props.name;
+      if (code != null && name != null) map.set(String(code), String(name));
+    }
+    return map;
+  } catch {
+    return new Map();
+  }
+}
+
+export async function fetchLookups(config: AppConfig): Promise<Lookups> {
+  if (isDemoContract(config.contractId)) return emptyLookups();
+  const [tier, category, app] = await Promise.all([
+    fetchLookupMap(config, 'tier'),
+    fetchLookupMap(config, 'category'),
+    fetchLookupMap(config, 'app'),
+  ]);
+  return { tier, category, app };
+}
+
+/** Fetch all `testCase` documents (resolving lookup FKs when provided). */
+export async function fetchTestCases(config: AppConfig, lookups?: Lookups): Promise<TestCase[]> {
   if (isDemoContract(config.contractId)) return DEMO_CASES;
   const raw = await queryAll(
     config,
@@ -66,7 +98,7 @@ export async function fetchTestCases(config: AppConfig): Promise<TestCase[]> {
     DEFAULT_MAX_DOCS,
   );
   return raw
-    .map(([id, doc]) => normalizeTestCase(id, doc))
+    .map(([id, doc]) => normalizeTestCase(id, doc, lookups))
     .filter((c): c is TestCase => c !== null);
 }
 
@@ -83,6 +115,7 @@ export async function fetchTestCases(config: AppConfig): Promise<TestCase[]> {
  */
 export async function fetchTestRuns(
   config: AppConfig,
+  lookups?: Lookups,
   maxDocs = DEFAULT_MAX_DOCS,
 ): Promise<TestRun[]> {
   if (isDemoContract(config.contractId)) {
@@ -94,7 +127,7 @@ export async function fetchTestRuns(
     maxDocs,
   );
   const runs = raw
-    .map(([id, doc]) => normalizeTestRun(id, doc))
+    .map(([id, doc]) => normalizeTestRun(id, doc, lookups))
     .filter((r): r is TestRun => r !== null);
   runs.sort((a, b) => b.executedAt - a.executedAt);
   return runs;

@@ -46,6 +46,12 @@ export function RunHistory({ view, onClose }: Props) {
             <ImplBadge status={tc.implStatus} />
           </dd>
         </div>
+        {tc.app && (
+          <div>
+            <dt>App</dt>
+            <dd>{tc.app}</dd>
+          </div>
+        )}
       </dl>
 
       {tc.description && <p className="drawer-desc">{tc.description}</p>}
@@ -85,6 +91,7 @@ export function RunHistory({ view, onClose }: Props) {
                     {truncateMiddle(run.buildRef, 12, 8)}
                   </span>
                 )}
+                {run.app && <span className="chip subtle">{run.app}</span>}
                 {run.device && <span className="chip subtle">{run.device}</span>}
                 <Evidence run={run} />
               </div>
