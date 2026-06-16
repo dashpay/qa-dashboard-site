@@ -81,6 +81,22 @@ describe('normalizeTestRun', () => {
     expect(run.executedAt).toBe(1_700_000_001_000);
   });
 
+  it('maps the integer network id (contract v2) to a name', () => {
+    const run = normalizeTestRun('rn', {
+      properties: { testId: 'CORE-05', result: 'pass', network: 1, buildRef: 'b1' },
+      createdAt: 1n,
+    })!;
+    expect(run.network).toBe('testnet');
+  });
+
+  it('passes through an already-named network string', () => {
+    const run = normalizeTestRun('rs', {
+      properties: { testId: 'CORE-05', result: 'pass', network: 'devnet', buildRef: 'b1' },
+      createdAt: 1n,
+    })!;
+    expect(run.network).toBe('devnet');
+  });
+
   it('classifies a URL evidence value as evidenceUrl', () => {
     const run = normalizeTestRun('r2', make('https://ci.example/run/1'))!;
     expect(run.evidenceUrl).toBe('https://ci.example/run/1');

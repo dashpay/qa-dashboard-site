@@ -88,18 +88,19 @@ the TEST_PLAN emoji vocabulary, so minor drift degrades gracefully.
 `planCommit`.
 
 **`testRun`** — an append-only execution record:
-`testId`, `result` (`pass`/`fail`/`blocked`/`skipped`), `network`, `buildRef`,
-`device`, `evidence` (txid / URL / path — classified for display), `notes`,
-`blockerReason`. The document's `$createdAt` is the run time.
+`testId`, `result` (`pass`/`fail`/`blocked`/`skipped`), `network` (an integer
+id — `0`=mainnet, `1`=testnet, `2`=devnet, `3`=regtest — mapped to a name for
+display), `buildRef`, `device`, `evidence` (txid / URL / path — classified for
+display), `notes`, `blockerReason`. The document's `$createdAt` is the run time.
 
 ### How "latest result" is computed
 
 Platform has no `GROUP BY`, so the reduction is client-side: fetch all
 `testRun` docs (paginated), sort by `$createdAt` desc, then take the first run
-per `testId`. The contract indexes `$createdAt` only inside composite indices
-(`[testId,$createdAt]`, `[result,$createdAt]`), so a global "order all runs by
-time" query isn't possible — paging through every run and sorting in the client
-is both index-safe and complete for an append-only audit log of this size.
+per `testId`. The contract indexes `$createdAt` only inside `$ownerId`-prefixed
+composite indices (e.g. `[$ownerId,testId,$createdAt]`), so a global "order all
+runs by time" query isn't possible — paging through every run and sorting in the
+client is both index-safe and complete for an append-only audit log of this size.
 Runs are loaded up to a cap (`DEFAULT_MAX_DOCS`, 5000); if exceeded, only the
 oldest beyond the cap are dropped.
 

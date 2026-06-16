@@ -105,6 +105,20 @@ export function normalizeTestCase(documentId: string, doc: RawDocument): TestCas
 const HEX64 = /^[0-9a-fA-F]{64}$/;
 const URL_RE = /^https?:\/\//i;
 
+// The contract stores `network` as an integer id (0=mainnet, 1=testnet,
+// 2=devnet, 3=regtest). Map it to a name; pass through already-named values.
+const NETWORK_NAMES: Record<string, string> = {
+  '0': 'mainnet',
+  '1': 'testnet',
+  '2': 'devnet',
+  '3': 'regtest',
+};
+
+function normalizeNetwork(value: string | undefined): string | undefined {
+  if (value === undefined) return undefined;
+  return /^\d+$/.test(value) ? (NETWORK_NAMES[value] ?? value) : value;
+}
+
 export function normalizeTestRun(documentId: string, doc: RawDocument): TestRun | null {
   const props = doc.properties ?? {};
   const testId = pickString(props, ['testId', 'testCaseId', 'caseId', 'case', 'code']);
@@ -133,7 +147,7 @@ export function normalizeTestRun(documentId: string, doc: RawDocument): TestRun 
     documentId,
     testId,
     result: normalizeResult(pickString(props, ['result', 'outcome', 'status', 'verdict'])),
-    network: pickString(props, ['network', 'net']) ?? null,
+    network: normalizeNetwork(pickString(props, ['network', 'net'])) ?? null,
     buildRef:
       pickString(props, ['buildRef', 'build', 'commit', 'sha', 'version']) ?? null,
     device: pickString(props, ['device', 'simulator']),
