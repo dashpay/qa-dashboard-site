@@ -65,9 +65,11 @@ interface Props {
   views: TestCaseView[];
   selectedTestId: string | null;
   onSelect: (testId: string) => void;
+  onRefreshTest: (testId: string) => void;
+  refreshingTestId: string | null;
 }
 
-export function TestList({ views, selectedTestId, onSelect }: Props) {
+export function TestList({ views, selectedTestId, onSelect, onRefreshTest, refreshingTestId }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>('testId');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
 
@@ -115,6 +117,7 @@ export function TestList({ views, selectedTestId, onSelect }: Props) {
               </th>
             );
           })}
+          <th className="actions" aria-label="Refresh" />
         </tr>
       </thead>
       <tbody>
@@ -158,6 +161,21 @@ export function TestList({ views, selectedTestId, onSelect }: Props) {
               </td>
               <td className="num">{v.runCount}</td>
               <td className="nowrap">{formatRelative(v.latestRun?.executedAt)}</td>
+              <td className="actions">
+                <button
+                  type="button"
+                  className={`row-refresh ${refreshingTestId === tc.testId ? 'spinning' : ''}`}
+                  title={`Refresh ${tc.testId}`}
+                  aria-label={`Refresh ${tc.testId}`}
+                  disabled={refreshingTestId === tc.testId}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRefreshTest(tc.testId);
+                  }}
+                >
+                  ↻
+                </button>
+              </td>
             </tr>
           );
         })}

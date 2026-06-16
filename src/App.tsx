@@ -49,7 +49,27 @@ export default function App() {
     setConfigVersion((v) => v + 1);
   }, []);
 
-  const { status, data, error, reload } = useQaData(config);
+  const { status, data, error, reload, refreshRuns, refreshTest, refreshing } = useQaData(config);
+  const [refreshingTestId, setRefreshingTestId] = useState<string | null>(null);
+  const [refreshNote, setRefreshNote] = useState<string | null>(null);
+
+  const onRefreshTest = useCallback(
+    async (testId: string) => {
+      setRefreshingTestId(testId);
+      try {
+        await refreshTest(testId);
+      } finally {
+        setRefreshingTestId(null);
+      }
+    },
+    [refreshTest],
+  );
+
+  const onRefreshRuns = useCallback(async () => {
+    const added = await refreshRuns();
+    setRefreshNote(added > 0 ? `+${added} new run${added === 1 ? '' : 's'}` : 'up to date');
+    window.setTimeout(() => setRefreshNote(null), 4000);
+  }, [refreshRuns]);
 
   const options = useMemo(
     () => (data ? deriveFilterOptions(data.cases, data.runs) : null),
@@ -184,12 +204,17 @@ export default function App() {
                 onChange={setFilters}
                 resultCount={filtered.length}
                 totalCount={views.length}
+                onRefresh={onRefreshRuns}
+                refreshing={refreshing}
+                refreshNote={refreshNote}
               />
               <div className="list-wrap">
                 <TestList
                   views={filtered}
                   selectedTestId={selectedTestId}
                   onSelect={(id) => setSelectedTestId((cur) => (cur === id ? null : id))}
+                  onRefreshTest={onRefreshTest}
+                  refreshingTestId={refreshingTestId}
                 />
               </div>
 

@@ -132,3 +132,47 @@ export async function fetchTestRuns(
   runs.sort((a, b) => b.executedAt - a.executedAt);
   return runs;
 }
+
+/**
+ * Fetch the runs for a single test (for per-row refresh). When the owner is
+ * known, queries server-side via the `$ownerId`+`testId` index; otherwise (or
+ * if that index query is rejected) falls back to fetching all runs and
+ * filtering client-side.
+ */
+export async function fetchRunsForTest(
+  config: AppConfig,
+  testId: string,
+  lookups?: Lookups,
+  ownerId?: string,
+): Promise<TestRun[]> {
+  if (isDemoContract(config.contractId)) {
+    return [...DEMO_RUNS].filter((r) => r.testId === testId).sort((a, b) => b.executedAt - a.executedAt);
+  }
+
+  if (ownerId) {
+    try {
+      const raw = await queryAll(
+        config,
+        {
+          dataContractId: config.contractId,
+          documentTypeName: config.testRunDocumentType,
+          where: [
+            ['$ownerId', '==', ownerId],
+            ['testId', '==', testId],
+          ],
+        },
+        DEFAULT_MAX_DOCS,
+      );
+      const runs = raw
+        .map(([id, doc]) => normalizeTestRun(id, doc, lookups))
+        .filter((r): r is TestRun => r !== null);
+      runs.sort((a, b) => b.executedAt - a.executedAt);
+      return runs;
+    } catch {
+      // index/where unsupported — fall back to the full fetch below
+    }
+  }
+
+  const all = await fetchTestRuns(config, lookups);
+  return all.filter((r) => r.testId === testId);
+}

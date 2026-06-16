@@ -18,9 +18,21 @@ interface Props {
   onChange: (next: Filters) => void;
   resultCount: number;
   totalCount: number;
+  onRefresh: () => void;
+  refreshing: boolean;
+  refreshNote: string | null;
 }
 
-export function FilterBar({ filters, options, onChange, resultCount, totalCount }: Props) {
+export function FilterBar({
+  filters,
+  options,
+  onChange,
+  resultCount,
+  totalCount,
+  onRefresh,
+  refreshing,
+  refreshNote,
+}: Props) {
   const set = <K extends keyof Filters>(key: K, value: Filters[K]) =>
     onChange({ ...filters, [key]: value });
 
@@ -77,6 +89,16 @@ export function FilterBar({ filters, options, onChange, resultCount, totalCount 
       <span className="filter-count">
         {resultCount}/{totalCount}
       </span>
+      {refreshNote && <span className="refresh-note">{refreshNote}</span>}
+      <button
+        type="button"
+        className="link-button"
+        onClick={onRefresh}
+        disabled={refreshing}
+        title="Fetch runs added since the last check and merge them in"
+      >
+        {refreshing ? 'Refreshing…' : '↻ Refresh runs'}
+      </button>
       {isFiltered && (
         <button type="button" className="link-button" onClick={() => onChange(EMPTY_FILTERS)}>
           Clear
