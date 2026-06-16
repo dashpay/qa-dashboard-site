@@ -518,15 +518,44 @@ button {
 
 .test-table th {
   text-align: left;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--text-muted);
-  padding: 10px 12px;
+  padding: 0; /* the clickable button carries the padding */
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
   background: var(--surface);
+}
+
+.test-table th .th-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 10px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.test-table th.num .th-btn {
+  justify-content: flex-end;
+}
+
+.test-table th .th-btn:hover {
+  color: var(--text);
+}
+
+.test-table th .th-btn.active {
+  color: var(--text);
+}
+
+.sort-ind {
+  color: var(--accent);
+  font-size: 9px;
 }
 
 .test-table td {
