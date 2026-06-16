@@ -59,10 +59,11 @@ export default function App() {
   const views = useMemo(() => {
     if (!data) return [];
     return buildViews(data.cases, data.runs, {
+      app: filters.app,
       network: filters.network,
       buildRef: filters.buildRef,
     });
-  }, [data, filters.network, filters.buildRef]);
+  }, [data, filters.app, filters.network, filters.buildRef]);
 
   const summary = useMemo(() => buildSummary(views), [views]);
   const matrix = useMemo(() => buildMatrix(views), [views]);
@@ -105,6 +106,23 @@ export default function App() {
           )}
         </div>
         <div className="header-actions">
+          {options && options.apps.length > 0 && (
+            <label className="app-scope">
+              <span>App</span>
+              <select
+                value={filters.app ?? ''}
+                onChange={(e) => setFilters((f) => ({ ...f, app: e.target.value || null }))}
+                aria-label="Application"
+              >
+                <option value="">All apps</option>
+                {options.apps.map((a) => (
+                  <option key={a} value={a}>
+                    {a}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           {configured && status === 'ready' && (
             <button type="button" className="link-button" onClick={reload}>
               ↻ Refresh

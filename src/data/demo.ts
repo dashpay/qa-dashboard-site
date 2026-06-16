@@ -28,6 +28,7 @@ function tc(
     layer,
     category,
     implStatus,
+    app: 'SwiftExampleApp',
     raw: {},
     ...extra,
   };
@@ -87,6 +88,7 @@ function run(
     executedAt,
     createdAt: executedAt,
     device: 'iPhone 16 Simulator · iOS 18.2',
+    app: 'SwiftExampleApp',
     raw: {},
     ...extra,
   };

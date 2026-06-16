@@ -9,9 +9,9 @@ import {
   groupRunsByTest,
 } from './compute';
 import { DEMO_CASES, DEMO_RUNS } from './demo';
-import type { TestRun } from '../sdk/types';
+import type { TestCase, TestRun } from '../sdk/types';
 
-const NO_SCOPE = { network: null, buildRef: null };
+const NO_SCOPE = { app: null, network: null, buildRef: null };
 
 describe('groupRunsByTest', () => {
   it('groups and sorts each test newest-first', () => {
@@ -47,11 +47,11 @@ describe('buildViews', () => {
   });
 
   it('scopes latest-result by run network when filtered', () => {
-    const testnetOnly = buildViews(DEMO_CASES, DEMO_RUNS, { network: 'testnet', buildRef: null });
+    const testnetOnly = buildViews(DEMO_CASES, DEMO_RUNS, { app: null, network: 'testnet', buildRef: null });
     const id04 = testnetOnly.find((v) => v.testCase.testId === 'ID-04')!;
     // ID-04 has a testnet pass and a devnet blocked; scoping to testnet => pass
     expect(id04.latestResult).toBe('pass');
-    const devnetOnly = buildViews(DEMO_CASES, DEMO_RUNS, { network: 'devnet', buildRef: null });
+    const devnetOnly = buildViews(DEMO_CASES, DEMO_RUNS, { app: null, network: 'devnet', buildRef: null });
     const id04dev = devnetOnly.find((v) => v.testCase.testId === 'ID-04')!;
     expect(id04dev.latestResult).toBe('blocked');
   });
@@ -110,6 +110,32 @@ describe('buildSummary', () => {
     expect(summary.orphanCount).toBe(1);
     const resultTotal = Object.values(summary.resultCounts).reduce((a, b) => a + b, 0);
     expect(resultTotal).toBe(views.length);
+  });
+});
+
+describe('buildViews — app scope', () => {
+  const cases: TestCase[] = [
+    { documentId: '1', testId: 'A-1', title: 'a', tier: 'Essential', layer: null, category: 'Core', implStatus: 'unknown', app: 'AppX', raw: {} },
+    { documentId: '2', testId: 'B-1', title: 'b', tier: 'Common', layer: null, category: 'Core', implStatus: 'unknown', app: 'AppY', raw: {} },
+  ];
+  const runs: TestRun[] = [
+    { documentId: 'r1', testId: 'A-1', result: 'pass', network: 'testnet', buildRef: 'b', app: 'AppX', executedAt: 1, raw: {} },
+    { documentId: 'r2', testId: 'B-1', result: 'fail', network: 'testnet', buildRef: 'b', app: 'AppY', executedAt: 1, raw: {} },
+  ];
+
+  it('scopes cases and runs to the selected app', () => {
+    const v = buildViews(cases, runs, { app: 'AppX', network: null, buildRef: null });
+    expect(v.map((x) => x.testCase.testId)).toEqual(['A-1']);
+    expect(v[0].latestResult).toBe('pass');
+  });
+
+  it('includes all apps when none selected', () => {
+    const v = buildViews(cases, runs, NO_SCOPE);
+    expect(v.length).toBe(2);
+  });
+
+  it('lists apps in filter options', () => {
+    expect(deriveFilterOptions(cases, runs).apps).toEqual(['AppX', 'AppY']);
   });
 });
 

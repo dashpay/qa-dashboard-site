@@ -23,6 +23,7 @@ export interface TestCaseView {
 }
 
 export interface Filters {
+  app: string | null;
   network: string | null;
   buildRef: string | null;
   tier: Tier | null;
@@ -33,6 +34,7 @@ export interface Filters {
 }
 
 export const EMPTY_FILTERS: Filters = {
+  app: null,
   network: null,
   buildRef: null,
   tier: null,
@@ -43,6 +45,7 @@ export const EMPTY_FILTERS: Filters = {
 };
 
 export interface FilterOptions {
+  apps: string[];
   networks: string[];
   buildRefs: string[];
   tiers: Tier[];
@@ -85,19 +88,23 @@ export function groupRunsByTest(runs: TestRun[]): Map<string, TestRun[]> {
 
 /** Derive the available filter option lists from the full (unfiltered) data. */
 export function deriveFilterOptions(cases: TestCase[], runs: TestRun[]): FilterOptions {
+  const apps = new Set<string>();
   const networks = new Set<string>();
   const buildRefs = new Set<string>();
   for (const run of runs) {
     if (run.network) networks.add(run.network);
     if (run.buildRef) buildRefs.add(run.buildRef);
+    if (run.app) apps.add(run.app);
   }
   const tiers = new Set<Tier>();
   const categories = new Set<Category>();
   for (const c of cases) {
     if (c.tier) tiers.add(c.tier);
     if (c.category) categories.add(c.category);
+    if (c.app) apps.add(c.app);
   }
   return {
+    apps: [...apps].sort(),
     networks: [...networks].sort(),
     buildRefs: [...buildRefs].sort(),
     tiers: [...tiers].sort(byKnownOrder(TIER_ORDER)),
@@ -119,18 +126,21 @@ function syntheticCase(testId: string): TestCase {
 }
 
 /**
- * Build the per-test views. Runs are first filtered by the run-scope filters
- * (network, buildRef), then reduced to latest-per-test, then merged with the
- * test cases. Orphan runs (no matching case) get a synthetic case so they
- * remain visible.
+ * Build the per-test views. `app` is a top-level scope: it filters BOTH the
+ * test cases and the runs, so the matrix, summary and list all reflect the
+ * selected app. `network`/`buildRef` further scope the runs. Results are then
+ * reduced to latest-per-test and merged with the cases; orphan runs (no
+ * matching case) get a synthetic case so they remain visible.
  */
 export function buildViews(
   cases: TestCase[],
   runs: TestRun[],
-  filters: Pick<Filters, 'network' | 'buildRef'>,
+  filters: Pick<Filters, 'network' | 'buildRef' | 'app'>,
 ): TestCaseView[] {
+  const scopedCases = filters.app ? cases.filter((c) => c.app === filters.app) : cases;
   const scopedRuns = runs.filter(
     (r) =>
+      (!filters.app || r.app === filters.app) &&
       (!filters.network || r.network === filters.network) &&
       (!filters.buildRef || r.buildRef === filters.buildRef),
   );
@@ -139,7 +149,7 @@ export function buildViews(
   const views: TestCaseView[] = [];
   const seen = new Set<string>();
 
-  for (const testCase of cases) {
+  for (const testCase of scopedCases) {
     seen.add(testCase.testId);
     const history = byTest.get(testCase.testId) ?? [];
     const latestRun = history[0] ?? null;
