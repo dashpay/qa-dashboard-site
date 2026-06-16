@@ -1,15 +1,16 @@
 import type { TestCaseView } from '../data/compute';
 import { ImplBadge, ResultBadge } from './badges';
 import { Evidence } from './EvidenceLink';
-import { formatTimestamp, truncateMiddle } from '../format';
+import { formatTimestamp, ownerLabel, truncateMiddle } from '../format';
 
 interface Props {
   view: TestCaseView | null;
+  ownerNames: Map<string, string>;
   onClose: () => void;
 }
 
 /** Drill-in panel: the full run history for one test case. */
-export function RunHistory({ view, onClose }: Props) {
+export function RunHistory({ view, ownerNames, onClose }: Props) {
   if (!view) return null;
   const tc = view.testCase;
 
@@ -92,6 +93,11 @@ export function RunHistory({ view, onClose }: Props) {
                   </span>
                 )}
                 {run.app && <span className="chip subtle">{run.app}</span>}
+                {run.ownerId && (
+                  <span className="chip subtle" title={run.ownerId}>
+                    by {ownerLabel(run.ownerId, ownerNames)}
+                  </span>
+                )}
                 {run.device && <span className="chip subtle">{run.device}</span>}
                 <Evidence run={run} />
               </div>

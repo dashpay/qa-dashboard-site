@@ -89,6 +89,7 @@ function run(
     createdAt: executedAt,
     device: 'iPhone 16 Simulator · iOS 18.2',
     app: 'SwiftExampleApp',
+    ownerId: '85KjYZLZXA7YZBPyFEjiMaH36xcQpBBZisKGBHF3uKuH',
     raw: {},
     ...extra,
   };

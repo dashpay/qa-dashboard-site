@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AppConfig } from '../config';
 import { isConfigured } from '../config';
-import { fetchLookups, fetchRunsForTest, fetchTestCases, fetchTestRuns } from '../sdk/documents';
+import {
+  fetchLookups,
+  fetchRunsForTest,
+  fetchTestCases,
+  fetchTestRuns,
+  resolveOwnerNames,
+} from '../sdk/documents';
 import type { Lookups, TestCase, TestRun } from '../sdk/types';
 
 export interface QaData {
@@ -24,6 +30,8 @@ export interface UseQaDataResult {
   refreshTest: (testId: string) => Promise<void>;
   /** True while a runs/test refresh is in flight. */
   refreshing: boolean;
+  /** Resolved owner id → DPNS username (only ids that have a name). */
+  ownerNames: Map<string, string>;
 }
 
 /** Union runs by document id (append-only log → new docs are new runs).
@@ -45,17 +53,24 @@ export function useQaData(config: AppConfig | null): UseQaDataResult {
   const [error, setError] = useState<Error | null>(null);
   const [nonce, setNonce] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  const [ownerNames, setOwnerNames] = useState<Map<string, string>>(new Map());
 
   // Refs so refresh callbacks read current state without re-creating themselves.
   const lookupsRef = useRef<Lookups | null>(null);
   const dataRef = useRef<QaData | null>(null);
   dataRef.current = data;
+  // Owner ids we've already tried to resolve (so nameless owners aren't re-queried).
+  const ownerTriedRef = useRef<Set<string>>(new Set());
 
   const reload = useCallback(() => setNonce((n) => n + 1), []);
 
   const key = config ? `${config.network}|${config.devnetName ?? ''}|${config.contractId}` : '';
 
   useEffect(() => {
+    // New contract/network → drop resolved owner names and the attempted set.
+    setOwnerNames(new Map());
+    ownerTriedRef.current = new Set();
+
     if (!config || !isConfigured(config)) {
       setStatus('idle');
       setData(null);
@@ -127,5 +142,27 @@ export function useQaData(config: AppConfig | null): UseQaDataResult {
     [config],
   );
 
-  return { status, data, error, reload, refreshRuns, refreshTest, refreshing };
+  // Resolve DPNS names for any run owners we haven't tried yet (incl. after refresh).
+  useEffect(() => {
+    if (!config || !data) return;
+    const ids = [...new Set(data.runs.map((r) => r.ownerId).filter((x): x is string => !!x))];
+    const todo = ids.filter((id) => !ownerTriedRef.current.has(id));
+    if (todo.length === 0) return;
+    todo.forEach((id) => ownerTriedRef.current.add(id));
+
+    let cancelled = false;
+    resolveOwnerNames(config, todo).then((resolved) => {
+      if (cancelled || resolved.size === 0) return;
+      setOwnerNames((prev) => {
+        const next = new Map(prev);
+        for (const [k, v] of resolved) next.set(k, v);
+        return next;
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [config, data]);
+
+  return { status, data, error, reload, refreshRuns, refreshTest, refreshing, ownerNames };
 }

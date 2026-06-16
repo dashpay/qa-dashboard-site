@@ -49,7 +49,8 @@ export default function App() {
     setConfigVersion((v) => v + 1);
   }, []);
 
-  const { status, data, error, reload, refreshRuns, refreshTest, refreshing } = useQaData(config);
+  const { status, data, error, reload, refreshRuns, refreshTest, refreshing, ownerNames } =
+    useQaData(config);
   const [refreshingTestId, setRefreshingTestId] = useState<string | null>(null);
   const [refreshNote, setRefreshNote] = useState<string | null>(null);
 
@@ -230,7 +231,11 @@ export default function App() {
       {selectedView && (
         <>
           <div className="drawer-scrim" onClick={() => setSelectedTestId(null)} />
-          <RunHistory view={selectedView} onClose={() => setSelectedTestId(null)} />
+          <RunHistory
+            view={selectedView}
+            ownerNames={ownerNames}
+            onClose={() => setSelectedTestId(null)}
+          />
         </>
       )}
 

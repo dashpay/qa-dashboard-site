@@ -79,6 +79,31 @@ async function fetchLookupMap(config: AppConfig, documentTypeName: string): Prom
   }
 }
 
+/**
+ * Reverse-resolve identity ids to DPNS usernames (for showing who submitted a
+ * run). Returns a map only for ids that have a name; callers fall back to a
+ * short id prefix for the rest. Resolves each id independently and tolerantly.
+ */
+export async function resolveOwnerNames(
+  config: AppConfig,
+  ownerIds: string[],
+): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  if (isDemoContract(config.contractId) || ownerIds.length === 0) return out;
+  const sdk = await getConnectedSdk(config);
+  await Promise.all(
+    ownerIds.map(async (id) => {
+      try {
+        const name = await sdk.dpns.username(id);
+        if (name) out.set(id, name);
+      } catch {
+        // no name / lookup failed — caller falls back to an id prefix
+      }
+    }),
+  );
+  return out;
+}
+
 export async function fetchLookups(config: AppConfig): Promise<Lookups> {
   if (isDemoContract(config.contractId)) return emptyLookups();
   const [tier, category, app] = await Promise.all([
