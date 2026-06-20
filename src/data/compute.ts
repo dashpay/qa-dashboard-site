@@ -18,8 +18,6 @@ export interface TestCaseView {
   latestResult: RunResult; // 'unknown' when there are no (matching) runs
   runCount: number;
   history: TestRun[]; // newest first
-  /** True when there are runs for a testId with no corresponding testCase doc. */
-  isOrphan: boolean;
 }
 
 export interface Filters {
@@ -67,7 +65,6 @@ export interface Summary {
   lastRunAt: number | null;
   distinctBuilds: number;
   distinctNetworks: number;
-  orphanCount: number;
 }
 
 function emptyResultCounts(): Record<RunResult, number> {
@@ -112,25 +109,13 @@ export function deriveFilterOptions(cases: TestCase[], runs: TestRun[]): FilterO
   };
 }
 
-function syntheticCase(testId: string): TestCase {
-  return {
-    documentId: `orphan:${testId}`,
-    testId,
-    title: testId,
-    tier: null,
-    layer: null,
-    category: null,
-    implStatus: 'unknown',
-    raw: {},
-  };
-}
-
 /**
  * Build the per-test views. `app` is a top-level scope: it filters BOTH the
  * test cases and the runs, so the matrix, summary and list all reflect the
  * selected app. `network`/`buildRef` further scope the runs. Results are then
- * reduced to latest-per-test and merged with the cases; orphan runs (no
- * matching case) get a synthetic case so they remain visible.
+ * reduced to latest-per-test and merged with the cases. Runs whose testId has
+ * no matching testCase are dropped — the table is the test-case catalog, not a
+ * raw run log.
  */
 export function buildViews(
   cases: TestCase[],
@@ -147,10 +132,8 @@ export function buildViews(
   const byTest = groupRunsByTest(scopedRuns);
 
   const views: TestCaseView[] = [];
-  const seen = new Set<string>();
 
   for (const testCase of scopedCases) {
-    seen.add(testCase.testId);
     const history = byTest.get(testCase.testId) ?? [];
     const latestRun = history[0] ?? null;
     views.push({
@@ -159,20 +142,6 @@ export function buildViews(
       latestResult: latestRun ? latestRun.result : 'unknown',
       runCount: history.length,
       history,
-      isOrphan: false,
-    });
-  }
-
-  // Orphan runs: a testId present in runs but absent from the case set.
-  for (const [testId, history] of byTest) {
-    if (seen.has(testId)) continue;
-    views.push({
-      testCase: syntheticCase(testId),
-      latestRun: history[0] ?? null,
-      latestResult: history[0]?.result ?? 'unknown',
-      runCount: history.length,
-      history,
-      isOrphan: true,
     });
   }
 
@@ -247,7 +216,6 @@ export function buildSummary(views: TestCaseView[]): Summary {
     'not-implemented': 0,
     unknown: 0,
   };
-  let orphanCount = 0;
   let totalRuns = 0;
   const builds = new Set<string>();
   const networks = new Set<string>();
@@ -256,7 +224,6 @@ export function buildSummary(views: TestCaseView[]): Summary {
   for (const v of views) {
     resultCounts[v.latestResult] += 1;
     implCounts[v.testCase.implStatus] += 1;
-    if (v.isOrphan) orphanCount += 1;
     for (const r of v.history) {
       totalRuns += 1;
       if (r.buildRef) builds.add(r.buildRef);
@@ -273,7 +240,6 @@ export function buildSummary(views: TestCaseView[]): Summary {
     lastRunAt,
     distinctBuilds: builds.size,
     distinctNetworks: networks.size,
-    orphanCount,
   };
 }
 

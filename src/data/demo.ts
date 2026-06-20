@@ -134,8 +134,6 @@ export const DEMO_RUNS: TestRun[] = [
   run('SH-08', 'pass', 1.5, 'testnet', B2),
   run('SH-10', 'skipped', 1.5, 'testnet', B2, { blockerReason: 'Anonymity set too small on testnet.' }),
   run('SYS-01', 'pass', 1.1, 'testnet', B2),
-  // An orphan run: a testId with no matching test case
-  run('EXP-99', 'pass', 1.2, 'testnet', B2, { notes: 'Experimental probe, not yet in the plan.' }),
 ];
 
 export function isDemoContract(contractId: string): boolean {

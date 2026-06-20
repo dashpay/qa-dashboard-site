@@ -40,10 +40,17 @@ describe('buildViews', () => {
     expect(core11.latestResult).toBe('unknown');
   });
 
-  it('surfaces orphan runs as synthetic cases', () => {
-    const orphan = views.find((v) => v.testCase.testId === 'EXP-99');
-    expect(orphan).toBeDefined();
-    expect(orphan!.isOrphan).toBe(true);
+  it('drops runs whose testId has no matching test case (no orphan synthesis)', () => {
+    const cases: TestCase[] = [
+      { documentId: '1', testId: 'CORE-01', title: 'a', tier: 'Essential', layer: null, category: 'Core', implStatus: 'implemented', raw: {} },
+    ];
+    const runs: TestRun[] = [
+      { documentId: 'r1', testId: 'CORE-01', result: 'pass', network: 'testnet', buildRef: 'b', executedAt: 1, raw: {} },
+      { documentId: 'r2', testId: 'GONE-99', result: 'skipped', network: 'testnet', buildRef: 'b', executedAt: 1, raw: {} },
+    ];
+    const v = buildViews(cases, runs, NO_SCOPE);
+    expect(v.map((x) => x.testCase.testId)).toEqual(['CORE-01']);
+    expect(v.find((x) => x.testCase.testId === 'GONE-99')).toBeUndefined();
   });
 
   it('scopes latest-result by run network when filtered', () => {
@@ -107,7 +114,6 @@ describe('buildSummary', () => {
     expect(summary.totalCases).toBe(views.length);
     expect(summary.totalRuns).toBe(DEMO_RUNS.length);
     expect(summary.distinctNetworks).toBe(2); // testnet + devnet
-    expect(summary.orphanCount).toBe(1);
     const resultTotal = Object.values(summary.resultCounts).reduce((a, b) => a + b, 0);
     expect(resultTotal).toBe(views.length);
   });

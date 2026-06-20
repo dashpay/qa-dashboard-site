@@ -140,14 +140,7 @@ export function TestList({ views, selectedTestId, onSelect, onRefreshTest, refre
               }}
             >
               <td>
-                <span className="test-id">
-                  {tc.testId}
-                  {v.isOrphan && (
-                    <span className="orphan-tag" title="Run(s) with no matching test case">
-                      orphan
-                    </span>
-                  )}
-                </span>
+                <span className="test-id">{tc.testId}</span>
                 <span className="test-title">{tc.title}</span>
               </td>
               <td>{tc.tier ?? '—'}</td>

@@ -599,15 +599,6 @@ button {
   white-space: nowrap;
 }
 
-.orphan-tag {
-  font-size: 9px;
-  text-transform: uppercase;
-  color: var(--blocked);
-  border: 1px solid var(--blocked);
-  border-radius: 4px;
-  padding: 0 4px;
-}
-
 .num { text-align: right; font-variant-numeric: tabular-nums; }
 .nowrap { white-space: nowrap; }
 

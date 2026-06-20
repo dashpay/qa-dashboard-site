@@ -12,9 +12,6 @@ export function SummaryCounts({ summary }: { summary: Summary }) {
         <Stat label="Builds" value={summary.distinctBuilds} />
         <Stat label="Networks" value={summary.distinctNetworks} />
         <Stat label="Last run" value={formatRelative(summary.lastRunAt)} />
-        {summary.orphanCount > 0 && (
-          <Stat label="Orphan runs" value={summary.orphanCount} hint="runs with no matching test case" />
-        )}
       </div>
       <div className="result-tally" role="list" aria-label="Latest result breakdown">
         {RUN_RESULTS.map((r) => (
