@@ -42,7 +42,7 @@ describe('buildViews', () => {
 
   it('drops runs whose testId has no matching test case (no orphan synthesis)', () => {
     const cases: TestCase[] = [
-      { documentId: '1', testId: 'CORE-01', title: 'a', tier: 'Essential', layer: null, category: 'Core', implStatus: 'implemented', raw: {} },
+      { documentId: '1', testId: 'CORE-01', title: 'a', tier: 'Essential', layer: null, category: 'Core', tags: [], implStatus: 'implemented', raw: {} },
     ];
     const runs: TestRun[] = [
       { documentId: 'r1', testId: 'CORE-01', result: 'pass', network: 'testnet', buildRef: 'b', executedAt: 1, raw: {} },
@@ -83,6 +83,13 @@ describe('applyFilters', () => {
     const hits = applyFilters(views, { ...EMPTY_FILTERS, search: 'shielded' });
     expect(hits.some((v) => v.testCase.testId.startsWith('SH-'))).toBe(true);
   });
+
+  it('filters by tag (only cases carrying the tag pass)', () => {
+    const tagged = applyFilters(views, { ...EMPTY_FILTERS, tag: 'group' });
+    expect(tagged.length).toBeGreaterThan(0);
+    expect(tagged.every((v) => v.testCase.tags.includes('group'))).toBe(true);
+    expect(tagged.some((v) => v.testCase.testId === 'GRP-03')).toBe(true);
+  });
 });
 
 describe('buildMatrix', () => {
@@ -121,8 +128,8 @@ describe('buildSummary', () => {
 
 describe('buildViews — app scope', () => {
   const cases: TestCase[] = [
-    { documentId: '1', testId: 'A-1', title: 'a', tier: 'Essential', layer: null, category: 'Core', implStatus: 'unknown', app: 'AppX', raw: {} },
-    { documentId: '2', testId: 'B-1', title: 'b', tier: 'Common', layer: null, category: 'Core', implStatus: 'unknown', app: 'AppY', raw: {} },
+    { documentId: '1', testId: 'A-1', title: 'a', tier: 'Essential', layer: null, category: 'Core', tags: ['multiwallet'], implStatus: 'unknown', app: 'AppX', raw: {} },
+    { documentId: '2', testId: 'B-1', title: 'b', tier: 'Common', layer: null, category: 'Core', tags: [], implStatus: 'unknown', app: 'AppY', raw: {} },
   ];
   const runs: TestRun[] = [
     { documentId: 'r1', testId: 'A-1', result: 'pass', network: 'testnet', buildRef: 'b', app: 'AppX', executedAt: 1, raw: {} },
@@ -142,6 +149,10 @@ describe('buildViews — app scope', () => {
 
   it('lists apps in filter options', () => {
     expect(deriveFilterOptions(cases, runs).apps).toEqual(['AppX', 'AppY']);
+  });
+
+  it('lists the distinct tags present', () => {
+    expect(deriveFilterOptions(cases, runs).tags).toEqual(['multiwallet']);
   });
 });
 

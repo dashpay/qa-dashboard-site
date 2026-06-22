@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { TestCaseView } from '../data/compute';
-import { ImplBadge, ResultBadge } from './badges';
+import { ImplBadge, ResultBadge, TagChips } from './badges';
 import { formatRelative } from '../format';
 import type { ImplStatus, RunResult } from '../sdk/types';
 import { CATEGORY_ORDER, LAYER_ORDER, TIER_ORDER } from '../sdk/types';
@@ -117,6 +117,9 @@ export function TestList({ views, selectedTestId, onSelect, onRefreshTest, refre
               </th>
             );
           })}
+          <th className="tags-col">
+            <span className="th-static">Tags</span>
+          </th>
           <th className="actions" aria-label="Refresh" />
         </tr>
       </thead>
@@ -154,6 +157,9 @@ export function TestList({ views, selectedTestId, onSelect, onRefreshTest, refre
               </td>
               <td className="num">{v.runCount}</td>
               <td className="nowrap">{formatRelative(v.latestRun?.executedAt)}</td>
+              <td className="tags-col">
+                <TagChips tags={tc.tags} />
+              </td>
               <td className="actions">
                 <button
                   type="button"

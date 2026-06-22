@@ -73,6 +73,14 @@ export function FilterBar({
         onChange={(v) => set('category', (v || null) as Filters['category'])}
         options={options.categories.map((c) => ({ value: c, label: c }))}
       />
+      {options.tags.length > 0 && (
+        <Select
+          label="Tag"
+          value={filters.tag ?? ''}
+          onChange={(v) => set('tag', v || null)}
+          options={options.tags.map((t) => ({ value: t, label: t }))}
+        />
+      )}
       <Select
         label="Result"
         value={filters.result === 'any' ? '' : filters.result}

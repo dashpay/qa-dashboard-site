@@ -26,6 +26,7 @@ export interface Filters {
   buildRef: string | null;
   tier: Tier | null;
   category: Category | null;
+  tag: string | null;
   result: RunResult | 'any';
   implStatus: ImplStatus | 'any';
   search: string;
@@ -37,6 +38,7 @@ export const EMPTY_FILTERS: Filters = {
   buildRef: null,
   tier: null,
   category: null,
+  tag: null,
   result: 'any',
   implStatus: 'any',
   search: '',
@@ -48,6 +50,7 @@ export interface FilterOptions {
   buildRefs: string[];
   tiers: Tier[];
   categories: Category[];
+  tags: string[];
 }
 
 export interface MatrixCell {
@@ -95,10 +98,12 @@ export function deriveFilterOptions(cases: TestCase[], runs: TestRun[]): FilterO
   }
   const tiers = new Set<Tier>();
   const categories = new Set<Category>();
+  const tags = new Set<string>();
   for (const c of cases) {
     if (c.tier) tiers.add(c.tier);
     if (c.category) categories.add(c.category);
     if (c.app) apps.add(c.app);
+    for (const t of c.tags) tags.add(t);
   }
   return {
     apps: [...apps].sort(),
@@ -106,6 +111,7 @@ export function deriveFilterOptions(cases: TestCase[], runs: TestRun[]): FilterO
     buildRefs: [...buildRefs].sort(),
     tiers: [...tiers].sort(byKnownOrder(TIER_ORDER)),
     categories: [...categories].sort(byKnownOrder(CATEGORY_ORDER)),
+    tags: [...tags].sort(),
   };
 }
 
@@ -155,6 +161,7 @@ export function applyFilters(views: TestCaseView[], filters: Filters): TestCaseV
   return views.filter((v) => {
     if (filters.tier && v.testCase.tier !== filters.tier) return false;
     if (filters.category && v.testCase.category !== filters.category) return false;
+    if (filters.tag && !v.testCase.tags.includes(filters.tag)) return false;
     if (filters.result !== 'any' && v.latestResult !== filters.result) return false;
     if (filters.implStatus !== 'any' && v.testCase.implStatus !== filters.implStatus) return false;
     if (search) {

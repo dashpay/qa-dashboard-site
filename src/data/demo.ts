@@ -27,6 +27,7 @@ function tc(
     tier,
     layer,
     category,
+    tags: [],
     implStatus,
     app: 'SwiftExampleApp',
     raw: {},
@@ -58,13 +59,18 @@ export const DEMO_CASES: TestCase[] = [
   }),
   tc('TOK-01', 'View token balance', 'Common', 'Platform', 'Token', 'implemented'),
   tc('TOK-08', 'Mint tokens', 'Uncommon', 'Platform', 'Token', 'builder'),
+  tc('TOK-16', 'Co-sign group token op', 'Thorough', 'Platform', 'Token', 'sdk-only', {
+    tags: ['group', 'multiwallet'],
+  }),
   tc('SH-01', 'Shielded pool sync', 'Essential', 'Shielded', 'Shielded', 'implemented'),
   tc('SH-08', 'Shielded withdraw (unshield)', 'Common', 'Shielded', 'Shielded', 'implemented'),
   tc('SH-10', 'Grow anonymity set', 'Thorough', 'Shielded', 'Shielded', 'mock'),
   tc('CORE-08', 'QR scan recipient', 'Manual', 'Core', 'Core', 'implemented', {
     description: 'Needs a real camera — skipped in automation, flagged for manual.',
   }),
-  tc('GRP-03', 'Group token transfer', 'Uncommon', 'Platform', 'Group', 'sdk-only'),
+  tc('GRP-03', 'Group token transfer', 'Uncommon', 'Platform', 'Token', 'sdk-only', {
+    tags: ['group'],
+  }),
   tc('SYS-01', 'Query total credits', 'Uncommon', 'Platform', 'System', 'implemented'),
 ];
 

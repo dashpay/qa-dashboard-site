@@ -50,6 +50,18 @@ function resolveCode(value: string | undefined, map?: Map<string, string>): stri
   return value;
 }
 
+/**
+ * Parse the `tags` field into a clean list. The v5 contract stores tags as a
+ * single comma-separated string (DPP has no typed string arrays); older
+ * contracts (or producers) may already supply an array. Both are accepted:
+ * split on commas, trim, drop empties.
+ */
+export function parseTags(value: unknown): string[] {
+  if (value === undefined || value === null) return [];
+  const parts = Array.isArray(value) ? value.map((v) => String(v)) : String(value).split(',');
+  return parts.map((s) => s.trim()).filter((s) => s !== '');
+}
+
 export function normalizeImplStatus(value: string | undefined): ImplStatus {
   if (!value) return 'unknown';
   const v = value.trim().toLowerCase();
@@ -105,6 +117,7 @@ export function normalizeTestCase(
     tier: resolveCode(pickString(props, ['tier']), lookups?.tier) ?? null,
     layer: pickString(props, ['layer']) ?? null,
     category: resolveCode(pickString(props, ['category', 'domain', 'area']), lookups?.category) ?? null,
+    tags: parseTags(pick(props, ['tags', 'tag', 'labels'])),
     app: resolveCode(pickString(props, ['app']), lookups?.app),
     implStatus: normalizeImplStatus(pickString(props, ['implStatus', 'status', 'implementation'])),
     description: pickString(props, ['description', 'details', 'notes']),

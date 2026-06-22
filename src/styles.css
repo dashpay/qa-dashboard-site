@@ -501,6 +501,21 @@ button {
 
 .impl { background: var(--surface-2); color: var(--text-muted); font-weight: 500; }
 
+.badge.tag {
+  background: var(--surface-2);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  font-weight: 500;
+  font-size: 10px;
+  text-transform: lowercase;
+}
+
+.tag-chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
 /* Test table */
 .list-wrap {
   overflow-x: auto;
@@ -556,6 +571,23 @@ button {
 .sort-ind {
   color: var(--accent);
   font-size: 9px;
+}
+
+/* Static (non-sortable) column header, e.g. Tags. Matches the sort-button
+   typography so the header row reads uniformly. */
+.test-table th .th-static {
+  display: block;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 10px 12px;
+  white-space: nowrap;
+}
+
+.test-table th.tags-col,
+.test-table td.tags-col {
+  max-width: 220px;
 }
 
 .test-table td {

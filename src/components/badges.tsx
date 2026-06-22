@@ -16,3 +16,17 @@ export function ImplBadge({ status }: { status: ImplStatus }) {
     </span>
   );
 }
+
+/** Render a test's cross-cutting tags as small chips. */
+export function TagChips({ tags }: { tags: string[] }) {
+  if (tags.length === 0) return <span className="muted">—</span>;
+  return (
+    <span className="tag-chips">
+      {tags.map((t) => (
+        <span key={t} className="badge tag" title={t}>
+          {t}
+        </span>
+      ))}
+    </span>
+  );
+}

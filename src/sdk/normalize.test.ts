@@ -4,6 +4,7 @@ import {
   normalizeResult,
   normalizeTestCase,
   normalizeTestRun,
+  parseTags,
   type RawDocument,
 } from './normalize';
 
@@ -63,6 +64,34 @@ describe('normalizeTestCase', () => {
 
   it('returns null without a testId', () => {
     expect(normalizeTestCase('x', { properties: { title: 'no id' } })).toBeNull();
+  });
+
+  it('parses a comma-separated tags string (v5 contract) into a list', () => {
+    const tc = normalizeTestCase('d', {
+      properties: { testId: 'DOC-15', title: 't', tags: 'multiwallet, contested ,' },
+    })!;
+    expect(tc.tags).toEqual(['multiwallet', 'contested']);
+  });
+
+  it('defaults tags to an empty list when absent', () => {
+    const tc = normalizeTestCase('d', { properties: { testId: 'X', title: 't' } })!;
+    expect(tc.tags).toEqual([]);
+  });
+});
+
+describe('parseTags', () => {
+  it('splits, trims, and drops empties', () => {
+    expect(parseTags('a, b ,,c')).toEqual(['a', 'b', 'c']);
+  });
+
+  it('handles undefined / empty', () => {
+    expect(parseTags(undefined)).toEqual([]);
+    expect(parseTags('')).toEqual([]);
+    expect(parseTags('   ')).toEqual([]);
+  });
+
+  it('accepts an already-array form', () => {
+    expect(parseTags(['x', ' y '])).toEqual(['x', 'y']);
   });
 
   it('resolves integer FK codes (v4 normalized contract) via lookups', () => {

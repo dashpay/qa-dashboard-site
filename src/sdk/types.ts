@@ -15,6 +15,10 @@ export type Category = string;
 /** Canonical display order; unknown values sort after these, alphabetically. */
 export const TIER_ORDER = ['Essential', 'Common', 'Thorough', 'Uncommon', 'Manual', 'Unspecified'];
 export const LAYER_ORDER = ['Core', 'Platform', 'Cross', 'Shielded'];
+// Canonical category order for display. Categories are resolved at runtime from
+// the contract's `category` lookup docs, so any value not listed here simply
+// sorts after these (alphabetically). MultiWallet/Group were removed in the v5
+// contract — they're now cross-cutting tags, not categories.
 export const CATEGORY_ORDER = [
   'Core',
   'Identity',
@@ -26,9 +30,7 @@ export const CATEGORY_ORDER = [
   'Token',
   'Shielded',
   'DashPay',
-  'Group',
   'System',
-  'MultiWallet',
 ];
 
 /** Comparator that respects a known order, then falls back to alphabetical. */
@@ -64,6 +66,12 @@ export interface TestCase {
   tier: Tier | null;
   layer: Layer | null;
   category: Category | null;
+  /**
+   * Cross-cutting tags (v5+ contract). Stored on-chain as a single
+   * comma-separated string (DPP only allows byte arrays), parsed here into a
+   * trimmed, empty-dropped list. Empty when absent.
+   */
+  tags: string[];
   implStatus: ImplStatus;
   /** Application under test (resolved from the `app` lookup; v4+ contracts). */
   app?: string;
