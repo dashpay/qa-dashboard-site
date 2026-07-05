@@ -20,10 +20,19 @@ import { TestList } from './components/TestList';
 import { RunHistory } from './components/RunHistory';
 import { SettingsPanel } from './components/SettingsPanel';
 
+const APP_LS_KEY = 'qa-dashboard.lastApp';
+
 export default function App() {
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [configVersion, setConfigVersion] = useState(0);
-  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [filters, setFilters] = useState<Filters>(() => {
+    try {
+      const stored = localStorage.getItem(APP_LS_KEY);
+      return stored ? { ...EMPTY_FILTERS, app: stored } : EMPTY_FILTERS;
+    } catch {
+      return EMPTY_FILTERS;
+    }
+  });
   // Deep-link support: ?test=CORE-05 opens that test's run history on load.
   const [selectedTestId, setSelectedTestId] = useState<string | null>(() => {
     try {
@@ -76,6 +85,17 @@ export default function App() {
     () => (data ? deriveFilterOptions(data.cases, data.runs) : null),
     [data],
   );
+
+  // When apps are known, ensure the selected app is valid; fall back to the
+  // first available app (never "all").
+  useEffect(() => {
+    if (!options || options.apps.length === 0) return;
+    const current = filters.app;
+    if (current && options.apps.includes(current)) return;
+    const fallback = options.apps[0];
+    setFilters((f) => ({ ...f, app: fallback }));
+    try { localStorage.setItem(APP_LS_KEY, fallback); } catch { /* */ }
+  }, [options, filters.app]);
 
   const views = useMemo(() => {
     if (!data) return [];
@@ -132,10 +152,13 @@ export default function App() {
               <span>App</span>
               <select
                 value={filters.app ?? ''}
-                onChange={(e) => setFilters((f) => ({ ...f, app: e.target.value || null }))}
+                onChange={(e) => {
+                  const app = e.target.value || null;
+                  setFilters((f) => ({ ...f, app }));
+                  try { if (app) localStorage.setItem(APP_LS_KEY, app); } catch { /* */ }
+                }}
                 aria-label="Application"
               >
-                <option value="">All apps</option>
                 {options.apps.map((a) => (
                   <option key={a} value={a}>
                     {a}
