@@ -251,3 +251,19 @@ export function buildSummary(views: TestCaseView[]): Summary {
 }
 
 export { RUN_RESULTS };
+
+/** Union runs by document id (append-only log → new docs are new runs).
+ *  When `replace` is set, that test's existing runs are dropped first; with an
+ *  app, only that app's, since test ids repeat across apps. */
+export function mergeRuns(
+  prev: TestRun[],
+  incoming: TestRun[],
+  replace?: { testId: string; app?: string },
+): TestRun[] {
+  const base = replace
+    ? prev.filter((r) => !(r.testId === replace.testId && (!replace.app || r.app === replace.app)))
+    : prev;
+  const byId = new Map(base.map((r) => [r.documentId, r]));
+  for (const r of incoming) byId.set(r.documentId, r);
+  return [...byId.values()].sort((a, b) => b.executedAt - a.executedAt);
+}

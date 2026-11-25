@@ -7,6 +7,7 @@ import {
   deriveFilterOptions,
   EMPTY_FILTERS,
   groupRunsByTest,
+  mergeRuns,
 } from './compute';
 import { DEMO_CASES, DEMO_RUNS } from './demo';
 import type { TestCase, TestRun } from '../sdk/types';
@@ -174,5 +175,36 @@ describe('sort safety', () => {
     ];
     const grouped = groupRunsByTest(runs);
     expect(grouped.get('T-1')!.length).toBe(2);
+  });
+});
+
+describe('mergeRuns', () => {
+  const run = (documentId: string, testId: string, app: string, executedAt: number): TestRun => ({
+    documentId, testId, app, result: 'pass', network: 'testnet', buildRef: 'abc', executedAt, raw: {},
+  });
+  const prev = [
+    run('swift-old', 'CORE-05', 'SwiftExampleApp', 1),
+    run('kotlin-old', 'CORE-05', 'KotlinExampleApp', 2),
+    run('other', 'CORE-06', 'SwiftExampleApp', 3),
+  ];
+
+  it('should add new runs and keep known ones, newest first', () => {
+    const merged = mergeRuns(prev, [run('new', 'CORE-06', 'SwiftExampleApp', 9), prev[0]]);
+    expect(merged.map((r) => r.documentId)).toEqual(['new', 'other', 'kotlin-old', 'swift-old']);
+  });
+
+  it("should replace only the refreshed app's runs of a test id both apps use", () => {
+    const merged = mergeRuns(prev, [run('swift-new', 'CORE-05', 'SwiftExampleApp', 9)], {
+      testId: 'CORE-05',
+      app: 'SwiftExampleApp',
+    });
+    expect(merged.map((r) => r.documentId)).toEqual(['swift-new', 'other', 'kotlin-old']);
+  });
+
+  it('should replace every run of the test when no app is given', () => {
+    const merged = mergeRuns(prev, [run('swift-new', 'CORE-05', 'SwiftExampleApp', 9)], {
+      testId: 'CORE-05',
+    });
+    expect(merged.map((r) => r.documentId)).toEqual(['swift-new', 'other']);
   });
 });
