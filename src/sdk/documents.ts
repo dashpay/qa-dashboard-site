@@ -128,15 +128,16 @@ export async function fetchTestCases(config: AppConfig, lookups?: Lookups): Prom
 }
 
 /**
- * Fetch `testRun` documents, newest first.
+ * Fetch `testRun` documents, newest first, whoever recorded them.
  *
- * The dash-qa contract indexes `$createdAt` only inside composite indices
- * (`[testId,$createdAt]`, `[result,$createdAt]`), so Platform can't order
- * *all* runs by time in one query. Instead we page through every run
- * (primary-key order) up to `maxDocs` and sort by `$createdAt` client-side —
- * which is both index-safe and complete for an append-only audit log of this
- * size. If the run volume ever exceeds `maxDocs`, the oldest runs beyond the
- * cap are dropped (the newest are always retained after the sort).
+ * The dash-qa contract indexes `$createdAt` only as the last property of
+ * composite indices (`[app,testId,$createdAt]`, `[buildRef,$createdAt]`, …),
+ * so Platform can't order *all* runs by time in one query. Instead we page
+ * through every run (primary-key order) up to `maxDocs` and sort by
+ * `$createdAt` client-side — which is both index-safe and complete for an
+ * append-only audit log of this size. If the run volume ever exceeds
+ * `maxDocs`, the oldest runs beyond the cap are dropped (the newest are always
+ * retained after the sort).
  */
 export async function fetchTestRuns(
   config: AppConfig,
@@ -158,23 +159,39 @@ export async function fetchTestRuns(
   return runs;
 }
 
+/** The integer code of an app name, from the `app` lookup (code → name). */
+function appCodeOf(app: string | undefined, lookups?: Lookups): number | undefined {
+  if (!app || !lookups) return undefined;
+  for (const [code, name] of lookups.app) {
+    if (name === app && /^\d+$/.test(code)) return Number(code);
+  }
+  return undefined;
+}
+
 /**
- * Fetch the runs for a single test (for per-row refresh). When the owner is
- * known, queries server-side via the `$ownerId`+`testId` index; otherwise (or
- * if that index query is rejected) falls back to fetching all runs and
- * filtering client-side.
+ * Fetch one test's runs in one app (for per-row refresh). Test ids repeat
+ * across apps, so a test is the pair (app, testId).
+ *
+ * Runs are recorded by any identity the contract owner listed as an admin, so
+ * the query does not name a recorder: it uses the contract's
+ * `[app,testId,$createdAt]` index. When the app's code is not known (a contract
+ * without the `app` lookup), or that query is refused, it falls back to
+ * fetching all runs and filtering client-side.
  */
 export async function fetchRunsForTest(
   config: AppConfig,
   testId: string,
   lookups?: Lookups,
-  ownerId?: string,
+  app?: string,
 ): Promise<TestRun[]> {
+  const matches = (r: TestRun) => r.testId === testId && (!app || r.app === app);
+
   if (isDemoContract(config.contractId)) {
-    return [...DEMO_RUNS].filter((r) => r.testId === testId).sort((a, b) => b.executedAt - a.executedAt);
+    return [...DEMO_RUNS].filter(matches).sort((a, b) => b.executedAt - a.executedAt);
   }
 
-  if (ownerId) {
+  const appCode = appCodeOf(app, lookups);
+  if (appCode !== undefined) {
     try {
       const raw = await queryAll(
         config,
@@ -182,7 +199,7 @@ export async function fetchRunsForTest(
           dataContractId: config.contractId,
           documentTypeName: config.testRunDocumentType,
           where: [
-            ['$ownerId', '==', ownerId],
+            ['app', '==', appCode],
             ['testId', '==', testId],
           ],
         },
@@ -199,5 +216,5 @@ export async function fetchRunsForTest(
   }
 
   const all = await fetchTestRuns(config, lookups);
-  return all.filter((r) => r.testId === testId);
+  return all.filter(matches);
 }

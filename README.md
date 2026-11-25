@@ -102,16 +102,20 @@ names), `title`, `layer`, `implStatus` (the glyph ✅/🧪/⚠️/🔌/🚫),
 `network` (integer id — `0`=mainnet, `1`=testnet, `2`=devnet, `3`=regtest —
 mapped to a name), `buildRef`, `device`, `evidence` (txid / URL / path —
 classified for display), `notes`, `blockerReason`. `$createdAt` is the run time.
-The unique `(testId, app)` index allows per-app results; with a single seeded
-app today the dashboard keys "latest result" by `testId`.
+Test ids repeat across apps, so a test is the pair `(app, testId)`: the App
+selector in the header scopes the whole dashboard to one app.
+
+A run is recorded by any identity the contract owner listed in the `admin`
+document type, so runs have several owners. The dashboard reads them whoever
+recorded them and shows the recorder on each run.
 
 ### How "latest result" is computed
 
 Platform has no `GROUP BY`, so the reduction is client-side: fetch all
 `testRun` docs (paginated), sort by `$createdAt` desc, then take the first run
-per `testId`. The contract indexes `$createdAt` only inside `$ownerId`-prefixed
-composite indices (e.g. `[$ownerId,testId,$createdAt]`), so a global "order all
-runs by time" query isn't possible — paging through every run and sorting in the
+per `testId` within the selected app. The contract indexes `$createdAt` only as
+the last property of composite indices (e.g. `[app,testId,$createdAt]`), so a
+global "order all runs by time" query isn't possible — paging through every run and sorting in the
 client is both index-safe and complete for an append-only audit log of this size.
 Runs are loaded up to a cap (`DEFAULT_MAX_DOCS`, 5000); if exceeded, only the
 oldest beyond the cap are dropped.

@@ -67,12 +67,12 @@ export default function App() {
     async (testId: string) => {
       setRefreshingTestId(testId);
       try {
-        await refreshTest(testId);
+        await refreshTest(testId, filters.app);
       } finally {
         setRefreshingTestId(null);
       }
     },
-    [refreshTest],
+    [refreshTest, filters.app],
   );
 
   const onRefreshRuns = useCallback(async () => {

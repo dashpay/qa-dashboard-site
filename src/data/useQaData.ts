@@ -9,6 +9,7 @@ import {
   resolveOwnerNames,
 } from '../sdk/documents';
 import type { Lookups, TestCase, TestRun } from '../sdk/types';
+import { mergeRuns } from './compute';
 
 export interface QaData {
   cases: TestCase[];
@@ -26,21 +27,12 @@ export interface UseQaDataResult {
   reload: () => void;
   /** Re-fetch all runs and merge any added since the last check (no reload flash). */
   refreshRuns: () => Promise<number>;
-  /** Re-fetch one test's runs and merge them in. */
-  refreshTest: (testId: string) => Promise<void>;
+  /** Re-fetch one test's runs (in one app, when given) and merge them in. */
+  refreshTest: (testId: string, app?: string | null) => Promise<void>;
   /** True while a runs/test refresh is in flight. */
   refreshing: boolean;
   /** Resolved owner id → DPNS username (only ids that have a name). */
   ownerNames: Map<string, string>;
-}
-
-/** Union runs by document id (append-only log → new docs are new runs).
- *  When replaceTestId is set, that test's existing runs are dropped first. */
-function mergeRuns(prev: TestRun[], incoming: TestRun[], replaceTestId?: string): TestRun[] {
-  const base = replaceTestId ? prev.filter((r) => r.testId !== replaceTestId) : prev;
-  const byId = new Map(base.map((r) => [r.documentId, r]));
-  for (const r of incoming) byId.set(r.documentId, r);
-  return [...byId.values()].sort((a, b) => b.executedAt - a.executedAt);
 }
 
 /**
@@ -126,15 +118,19 @@ export function useQaData(config: AppConfig | null): UseQaDataResult {
   }, [config]);
 
   const refreshTest = useCallback(
-    async (testId: string): Promise<void> => {
+    async (testId: string, app?: string | null): Promise<void> => {
       if (!config || !isConfigured(config) || !dataRef.current) return;
       setRefreshing(true);
       try {
-        const owner = dataRef.current.runs.find((r) => r.ownerId)?.ownerId;
-        const incoming = await fetchRunsForTest(config, testId, lookupsRef.current ?? undefined, owner);
+        const scope = app ?? undefined;
+        const incoming = await fetchRunsForTest(config, testId, lookupsRef.current ?? undefined, scope);
         const prev = dataRef.current;
         if (!prev) return;
-        setData({ ...prev, runs: mergeRuns(prev.runs, incoming, testId), loadedAt: Date.now() });
+        setData({
+          ...prev,
+          runs: mergeRuns(prev.runs, incoming, { testId, app: scope }),
+          loadedAt: Date.now(),
+        });
       } finally {
         setRefreshing(false);
       }
